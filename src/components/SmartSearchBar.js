@@ -1,216 +1,205 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Chip, IconButton, Tooltip } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import HistoryIcon from '@mui/icons-material/History';
-import ColorLensIcon from '@mui/icons-material/ColorLens';
+import { 
+  processNaturalLanguageQuery, 
+  getSearchSuggestions, 
+  saveSearchQuery,
+  getSearchHistory 
+} from '../utils/smartSearch';
+import './SmartSearchBar.css';
 
 const SmartSearchBar = ({ 
   onSearch, 
   isLightMode, 
   isBiggerScreen, 
-  smartSearch,
-  searchQuery,
-  setSearchQuery 
+  initialQuery = '' 
 }) => {
+  const [query, setQuery] = useState(initialQuery);
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
-  const [isSmartMode, setIsSmartMode] = useState(true);
-  const [detectedColors, setDetectedColors] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedSuggestion, setSelectedSuggestion] = useState(-1);
+  
   const inputRef = useRef(null);
   const suggestionsRef = useRef(null);
 
-  // Example smart search suggestions
-  const smartSuggestions = [
-    "sunset over mountains",
-    "peaceful lake reflection", 
-    "vibrant city lights at night",
-    "colorful autumn forest",
-    "dramatic storm clouds",
-    "serene beach waves",
-    "golden hour landscape",
-    "mysterious foggy forest"
-  ];
+  useEffect(() => {
+    setSearchHistory(getSearchHistory().slice(0, 5));
+  }, []);
 
   useEffect(() => {
-    if (smartSearch) {
-      setSearchHistory(smartSearch.getSearchHistory().slice(0, 5));
-    }
-  }, [smartSearch]);
-
-  useEffect(() => {
-    if (searchQuery.length > 2 && isSmartMode) {
-      const colors = smartSearch?.extractColorPreference(searchQuery) || [];
-      setDetectedColors(colors);
-      
-      if (smartSearch) {
-        const newSuggestions = smartSearch.generateSuggestions(searchQuery);
-        setSuggestions(newSuggestions);
-      } else {
-        // Fallback suggestions
-        const filtered = smartSuggestions.filter(s => 
-          s.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setSuggestions(filtered);
-      }
+    if (query.length > 0) {
+      const newSuggestions = getSearchSuggestions(query);
+      setSuggestions(newSuggestions);
     } else {
-      setSuggestions([]);
-      setDetectedColors([]);
+      setSuggestions(searchHistory.map(h => h.query));
     }
-  }, [searchQuery, isSmartMode, smartSearch]);
+  }, [query, searchHistory]);
 
   const handleInputChange = (e) => {
-    setSearchQuery(e.target.value);
-    setShowSuggestions(true);
+    const value = e.target.value;
+    setQuery(value);
+    setSelectedSuggestion(-1);
+    
+    if (value.length > 0) {
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSearch = async (searchQuery = query) => {
+    if (!searchQuery.trim()) return;
+    
+    setIsProcessing(true);
+    setShowSuggestions(false);
+    
+    try {
+      const processedQuery = processNaturalLanguageQuery(searchQuery);
+      await onSearch(searchQuery, processedQuery);
+      saveSearchQuery(searchQuery, []);
+      setSearchHistory(getSearchHistory().slice(0, 5));
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setSearchQuery(suggestion);
+    setQuery(suggestion);
     setShowSuggestions(false);
-    onSearch(suggestion);
+    handleSearch(suggestion);
   };
 
-  const handleSearch = () => {
-    if (searchQuery.trim()) {
-      onSearch(searchQuery);
-      setShowSuggestions(false);
-    }
-  };
+  const handleKeyDown = (e) => {
+    if (!showSuggestions) return;
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false);
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedSuggestion(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedSuggestion(prev => 
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedSuggestion >= 0) {
+          handleSuggestionClick(suggestions[selectedSuggestion]);
+        } else {
+          handleSearch();
+        }
+        break;
+      case 'Escape':
+        setShowSuggestions(false);
+        setSelectedSuggestion(-1);
+        break;
+      default:
+        break;
     }
   };
 
   const handleFocus = () => {
-    if (searchQuery.length > 2 || searchHistory.length > 0) {
+    if (query.length > 0 || searchHistory.length > 0) {
       setShowSuggestions(true);
     }
   };
 
   const handleBlur = (e) => {
-    // Delay hiding suggestions to allow clicking on them
+    // Delay hiding suggestions to allow for clicks
     setTimeout(() => {
       if (!suggestionsRef.current?.contains(e.relatedTarget)) {
         setShowSuggestions(false);
+        setSelectedSuggestion(-1);
       }
     }, 150);
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%' }}>
-      <div className="search-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <motion.div 
-          className="search-input-wrapper"
-          style={{ 
-            position: 'relative', 
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center'
+    <div className="smart-search-container">
+      <motion.div 
+        className="search-input-wrapper"
+        whileFocus={{ scale: 1.02 }}
+        transition={{ duration: 0.2 }}
+      >
+        <motion.input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          placeholder="Try 'sunset over mountains' or 'peaceful nature'..."
+          className={`smart-search-input ${isLightMode ? 'light' : 'dark'}`}
+          style={{
+            width: isBiggerScreen ? '350px' : '280px',
+            height: '42px',
+            backgroundColor: isLightMode ? 'rgb(240,240,240)' : 'rgb(60,60,60)',
+            color: isLightMode ? 'black' : 'white',
+            border: `2px solid ${isLightMode ? 'rgb(200,200,200)' : 'rgb(80,80,80)'}`,
+            borderRadius: '12px',
+            paddingLeft: '16px',
+            paddingRight: '50px',
+            fontSize: '14px',
+            transition: 'all 0.3s ease',
+            outline: 'none'
           }}
-          whileFocus={{ scale: 1.02 }}
+          whileFocus={{
+            borderColor: isLightMode ? '#0971f1' : '#4dabf7',
+            boxShadow: `0 0 0 3px ${isLightMode ? 'rgba(9,113,241,0.1)' : 'rgba(77,171,247,0.1)'}`
+          }}
+        />
+        
+        <motion.button
+          onClick={() => handleSearch()}
+          className="search-button"
+          disabled={isProcessing}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          style={{
+            position: 'absolute',
+            right: '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: '32px',
+            height: '32px',
+            borderRadius: '8px',
+            border: 'none',
+            backgroundColor: isLightMode ? '#0971f1' : '#4dabf7',
+            color: 'white',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
         >
-          <motion.input
-            ref={inputRef}
-            style={{
-              width: '100%',
-              height: '42px',
-              backgroundColor: isLightMode ? 'rgb(240,240,240)' : 'rgb(60,60,60)',
-              color: isLightMode ? 'black' : 'white',
-              borderRadius: '21px',
-              border: `2px solid ${isSmartMode ? '#4CAF50' : 'transparent'}`,
-              paddingLeft: '20px',
-              paddingRight: '50px',
-              fontSize: '14px',
-              transition: 'all 0.3s ease',
-              boxShadow: isSmartMode ? '0 0 10px rgba(76, 175, 80, 0.3)' : 'none'
-            }}
-            value={searchQuery}
-            onChange={handleInputChange}
-            onKeyPress={handleKeyPress}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            placeholder={isSmartMode ? "Try: 'sunset over mountains' or 'peaceful blue lake'" : "Search images..."}
-            whileFocus={{ 
-              boxShadow: isSmartMode 
-                ? "0 0 20px rgba(76, 175, 80, 0.5)" 
-                : "0 0 15px rgba(0,123,255,0.4)"
-            }}
-          />
-          
-          <IconButton
-            onClick={handleSearch}
-            style={{
-              position: 'absolute',
-              right: '5px',
-              color: isLightMode ? '#666' : '#ccc'
-            }}
-            size="small"
-          >
-            <SearchIcon />
-          </IconButton>
-        </motion.div>
+          {isProcessing ? (
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+              style={{ width: '16px', height: '16px', border: '2px solid white', borderTop: '2px solid transparent', borderRadius: '50%' }}
+            />
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+            </svg>
+          )}
+        </motion.button>
+      </motion.div>
 
-        <Tooltip title={isSmartMode ? "Smart AI Search Active" : "Enable Smart Search"}>
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <IconButton
-              onClick={() => setIsSmartMode(!isSmartMode)}
-              style={{
-                color: isSmartMode ? '#4CAF50' : (isLightMode ? '#666' : '#ccc'),
-                backgroundColor: isSmartMode ? 'rgba(76, 175, 80, 0.1)' : 'transparent'
-              }}
-            >
-              <AutoAwesomeIcon />
-            </IconButton>
-          </motion.div>
-        </Tooltip>
-      </div>
-
-      {/* Color Detection Chips */}
       <AnimatePresence>
-        {detectedColors.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            style={{
-              display: 'flex',
-              gap: '6px',
-              marginTop: '8px',
-              alignItems: 'center'
-            }}
-          >
-            <ColorLensIcon style={{ fontSize: '16px', color: '#666' }} />
-            {detectedColors.map((color, idx) => (
-              <Chip
-                key={idx}
-                label={color.name}
-                size="small"
-                style={{
-                  backgroundColor: color.hex + '20',
-                  color: isLightMode ? '#333' : '#fff',
-                  border: `1px solid ${color.hex}`,
-                  fontSize: '11px'
-                }}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Suggestions Dropdown */}
-      <AnimatePresence>
-        {showSuggestions && (suggestions.length > 0 || searchHistory.length > 0) && (
+        {showSuggestions && suggestions.length > 0 && (
           <motion.div
             ref={suggestionsRef}
+            className="suggestions-dropdown"
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -221,96 +210,38 @@ const SmartSearchBar = ({
               left: 0,
               right: 0,
               backgroundColor: isLightMode ? 'white' : 'rgb(40,40,40)',
+              border: `1px solid ${isLightMode ? 'rgb(220,220,220)' : 'rgb(80,80,80)'}`,
               borderRadius: '12px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-              border: `1px solid ${isLightMode ? '#e0e0e0' : '#555'}`,
-              zIndex: 1000,
+              marginTop: '4px',
               maxHeight: '300px',
               overflowY: 'auto',
-              marginTop: '8px'
+              zIndex: 1000,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
             }}
           >
-            {/* Search History */}
-            {searchHistory.length > 0 && searchQuery.length === 0 && (
-              <div style={{ padding: '12px 16px 8px' }}>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '6px', 
-                  marginBottom: '8px',
-                  fontSize: '12px',
-                  color: '#666'
-                }}>
-                  <HistoryIcon style={{ fontSize: '14px' }} />
-                  Recent Searches
+            {suggestions.map((suggestion, index) => (
+              <motion.div
+                key={suggestion}
+                className={`suggestion-item ${selectedSuggestion === index ? 'selected' : ''}`}
+                onClick={() => handleSuggestionClick(suggestion)}
+                whileHover={{ backgroundColor: isLightMode ? 'rgb(248,249,250)' : 'rgb(50,50,50)' }}
+                style={{
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  borderBottom: index < suggestions.length - 1 ? `1px solid ${isLightMode ? 'rgb(240,240,240)' : 'rgb(60,60,60)'}` : 'none',
+                  color: isLightMode ? 'rgb(60,60,60)' : 'rgb(200,200,200)',
+                  fontSize: '14px',
+                  backgroundColor: selectedSuggestion === index ? (isLightMode ? 'rgb(248,249,250)' : 'rgb(50,50,50)') : 'transparent'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" opacity="0.5">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                  </svg>
+                  {suggestion}
                 </div>
-                {searchHistory.map((item, idx) => (
-                  <motion.div
-                    key={item.id}
-                    whileHover={{ backgroundColor: isLightMode ? '#f5f5f5' : '#555' }}
-                    style={{
-                      padding: '8px 12px',
-                      cursor: 'pointer',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      margin: '2px 0'
-                    }}
-                    onClick={() => handleSuggestionClick(item.query)}
-                  >
-                    {item.query}
-                    <span style={{ 
-                      fontSize: '11px', 
-                      color: '#888', 
-                      marginLeft: '8px' 
-                    }}>
-                      {item.resultCount} results
-                    </span>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-
-            {/* Smart Suggestions */}
-            {suggestions.length > 0 && (
-              <div style={{ padding: '12px 16px' }}>
-                {searchQuery.length > 0 && (
-                  <div style={{ 
-                    fontSize: '12px',
-                    color: '#666',
-                    marginBottom: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <AutoAwesomeIcon style={{ fontSize: '14px' }} />
-                    Smart Suggestions
-                  </div>
-                )}
-                {suggestions.map((suggestion, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    whileHover={{ 
-                      backgroundColor: isLightMode ? '#f0f8ff' : '#444',
-                      x: 4
-                    }}
-                    style={{
-                      padding: '10px 12px',
-                      cursor: 'pointer',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      margin: '2px 0',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    {suggestion}
-                  </motion.div>
-                ))}
-              </div>
-            )}
+              </motion.div>
+            ))}
           </motion.div>
         )}
       </AnimatePresence>

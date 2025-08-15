@@ -1,328 +1,284 @@
 // Smart Search Utility for AI-powered natural language queries
 import axios from 'axios';
 
-// Enhanced keyword mapping for natural language processing
-const keywordMappings = {
-  // Nature & Landscapes
-  'sunset': ['sunset', 'golden hour', 'dusk', 'evening sky'],
-  'sunrise': ['sunrise', 'dawn', 'morning light', 'early morning'],
-  'ocean': ['ocean', 'sea', 'waves', 'beach', 'coastal'],
-  'mountain': ['mountain', 'peak', 'summit', 'alpine', 'hills'],
-  'forest': ['forest', 'trees', 'woods', 'jungle', 'nature'],
-  'desert': ['desert', 'sand', 'dunes', 'arid', 'dry'],
-  'lake': ['lake', 'pond', 'water', 'reflection', 'calm'],
-  'river': ['river', 'stream', 'flowing water', 'creek'],
-  'waterfall': ['waterfall', 'cascade', 'falls', 'rushing water'],
-  'sky': ['sky', 'clouds', 'atmosphere', 'heavens'],
-  
-  // Colors
-  'blue': ['blue', 'azure', 'navy', 'cobalt', 'cerulean'],
-  'red': ['red', 'crimson', 'scarlet', 'ruby', 'cherry'],
-  'green': ['green', 'emerald', 'jade', 'forest green', 'lime'],
-  'yellow': ['yellow', 'golden', 'amber', 'sunshine', 'lemon'],
-  'purple': ['purple', 'violet', 'lavender', 'plum', 'magenta'],
-  'orange': ['orange', 'tangerine', 'coral', 'peach', 'amber'],
-  'pink': ['pink', 'rose', 'blush', 'salmon', 'fuchsia'],
-  'black': ['black', 'dark', 'shadow', 'night', 'ebony'],
-  'white': ['white', 'bright', 'snow', 'pure', 'clean'],
-  
-  // Moods & Atmospheres
-  'peaceful': ['peaceful', 'calm', 'serene', 'tranquil', 'quiet'],
-  'dramatic': ['dramatic', 'intense', 'powerful', 'striking', 'bold'],
-  'mysterious': ['mysterious', 'dark', 'moody', 'enigmatic', 'shadowy'],
-  'bright': ['bright', 'vibrant', 'colorful', 'vivid', 'luminous'],
-  'soft': ['soft', 'gentle', 'delicate', 'subtle', 'muted'],
-  
-  // Architecture & Urban
-  'city': ['city', 'urban', 'skyline', 'buildings', 'metropolitan'],
-  'building': ['building', 'architecture', 'structure', 'tower'],
-  'street': ['street', 'road', 'path', 'alley', 'avenue'],
-  'bridge': ['bridge', 'crossing', 'span', 'overpass'],
-  
-  // People & Lifestyle
-  'person': ['person', 'people', 'human', 'individual', 'portrait'],
-  'travel': ['travel', 'journey', 'adventure', 'exploration', 'trip'],
-  'food': ['food', 'cuisine', 'meal', 'dish', 'cooking'],
-  'art': ['art', 'artistic', 'creative', 'painting', 'sculpture'],
-  
-  // Animals
-  'bird': ['bird', 'flying', 'wings', 'feathers', 'avian'],
-  'cat': ['cat', 'feline', 'kitten', 'pet'],
-  'dog': ['dog', 'canine', 'puppy', 'pet'],
-  'wildlife': ['wildlife', 'animal', 'wild', 'nature', 'fauna'],
-  
-  // Weather & Seasons
-  'rain': ['rain', 'storm', 'wet', 'drops', 'precipitation'],
-  'snow': ['snow', 'winter', 'cold', 'frost', 'ice'],
-  'spring': ['spring', 'bloom', 'flowers', 'fresh', 'growth'],
-  'summer': ['summer', 'warm', 'sunny', 'hot', 'vacation'],
-  'autumn': ['autumn', 'fall', 'leaves', 'harvest', 'golden'],
-  'winter': ['winter', 'cold', 'snow', 'ice', 'frozen']
+// Natural language to search terms mapping
+const nlpPatterns = {
+  colors: {
+    patterns: [
+      /\b(red|crimson|scarlet|ruby|cherry)\b/gi,
+      /\b(blue|azure|navy|cobalt|cerulean)\b/gi,
+      /\b(green|emerald|forest|lime|mint)\b/gi,
+      /\b(yellow|golden|amber|lemon|sunshine)\b/gi,
+      /\b(purple|violet|lavender|plum|magenta)\b/gi,
+      /\b(orange|tangerine|coral|peach|apricot)\b/gi,
+      /\b(pink|rose|blush|salmon|fuchsia)\b/gi,
+      /\b(black|dark|shadow|midnight|ebony)\b/gi,
+      /\b(white|bright|light|snow|ivory)\b/gi,
+      /\b(brown|tan|coffee|chocolate|sepia)\b/gi,
+      /\b(gray|grey|silver|slate|ash)\b/gi
+    ],
+    keywords: [
+      'red', 'blue', 'green', 'yellow', 'purple', 'orange', 
+      'pink', 'black', 'white', 'brown', 'gray'
+    ]
+  },
+  moods: {
+    patterns: [
+      /\b(calm|peaceful|serene|tranquil|zen)\b/gi,
+      /\b(dramatic|intense|powerful|bold|striking)\b/gi,
+      /\b(happy|joyful|cheerful|bright|uplifting)\b/gi,
+      /\b(sad|melancholy|somber|moody|dark)\b/gi,
+      /\b(romantic|love|intimate|tender|soft)\b/gi,
+      /\b(energetic|dynamic|vibrant|lively|active)\b/gi,
+      /\b(mysterious|enigmatic|shadowy|hidden|secret)\b/gi,
+      /\b(vintage|retro|classic|old|nostalgic)\b/gi,
+      /\b(modern|contemporary|futuristic|sleek|minimal)\b/gi
+    ],
+    keywords: [
+      'nature', 'urban', 'peaceful', 'dramatic', 'vintage', 
+      'modern', 'romantic', 'energetic', 'mysterious'
+    ]
+  },
+  subjects: {
+    patterns: [
+      /\b(person|people|human|man|woman|child|portrait)\b/gi,
+      /\b(animal|cat|dog|bird|wildlife|pet)\b/gi,
+      /\b(landscape|mountain|ocean|forest|desert|field)\b/gi,
+      /\b(city|urban|building|architecture|street)\b/gi,
+      /\b(flower|plant|tree|garden|botanical)\b/gi,
+      /\b(food|meal|cooking|restaurant|kitchen)\b/gi,
+      /\b(car|vehicle|transportation|road|travel)\b/gi,
+      /\b(technology|computer|phone|gadget|digital)\b/gi,
+      /\b(art|painting|sculpture|creative|artistic)\b/gi,
+      /\b(sport|fitness|exercise|athletic|game)\b/gi
+    ],
+    keywords: [
+      'people', 'animals', 'landscape', 'city', 'flowers', 
+      'food', 'cars', 'technology', 'art', 'sports'
+    ]
+  },
+  times: {
+    patterns: [
+      /\b(sunrise|dawn|morning|early)\b/gi,
+      /\b(sunset|dusk|evening|golden hour)\b/gi,
+      /\b(night|nighttime|dark|midnight)\b/gi,
+      /\b(day|daytime|noon|afternoon)\b/gi,
+      /\b(winter|snow|cold|frost)\b/gi,
+      /\b(summer|sun|hot|warm)\b/gi,
+      /\b(spring|bloom|fresh|new)\b/gi,
+      /\b(autumn|fall|leaves|harvest)\b/gi
+    ],
+    keywords: [
+      'sunrise', 'sunset', 'night', 'day', 'winter', 
+      'summer', 'spring', 'autumn'
+    ]
+  }
 };
 
-// Color extraction keywords for filtering
-const colorKeywords = {
-  'blue': '#0066cc',
-  'red': '#cc0000', 
-  'green': '#00cc00',
-  'yellow': '#cccc00',
-  'purple': '#6600cc',
-  'orange': '#cc6600',
-  'pink': '#cc0066',
-  'black': '#000000',
-  'white': '#ffffff'
+// Enhanced search query processor
+export const processNaturalLanguageQuery = (query) => {
+  if (!query || query.trim().length === 0) return '';
+  
+  const originalQuery = query.toLowerCase().trim();
+  let processedTerms = [];
+  let foundMatches = false;
+
+  // Check for color mentions
+  nlpPatterns.colors.patterns.forEach((pattern, index) => {
+    if (pattern.test(originalQuery)) {
+      processedTerms.push(nlpPatterns.colors.keywords[index]);
+      foundMatches = true;
+    }
+  });
+
+  // Check for mood/style mentions
+  nlpPatterns.moods.patterns.forEach((pattern, index) => {
+    if (pattern.test(originalQuery)) {
+      processedTerms.push(nlpPatterns.moods.keywords[index]);
+      foundMatches = true;
+    }
+  });
+
+  // Check for subject mentions
+  nlpPatterns.subjects.patterns.forEach((pattern, index) => {
+    if (pattern.test(originalQuery)) {
+      processedTerms.push(nlpPatterns.subjects.keywords[index]);
+      foundMatches = true;
+    }
+  });
+
+  // Check for time/season mentions
+  nlpPatterns.times.patterns.forEach((pattern, index) => {
+    if (pattern.test(originalQuery)) {
+      processedTerms.push(nlpPatterns.times.keywords[index]);
+      foundMatches = true;
+    }
+  });
+
+  // If no patterns matched, use the original query
+  if (!foundMatches) {
+    // Extract meaningful words (remove common words)
+    const stopWords = ['a', 'an', 'the', 'is', 'are', 'was', 'were', 'with', 'of', 'in', 'on', 'at', 'to', 'for', 'and', 'or', 'but'];
+    const words = originalQuery.split(' ').filter(word => 
+      word.length > 2 && !stopWords.includes(word)
+    );
+    processedTerms = words;
+  }
+
+  return processedTerms.join(' ');
 };
 
-class SmartSearch {
-  constructor() {
-    this.searchHistory = [];
-    this.popularQueries = [];
-  }
+// Smart search suggestions
+export const getSearchSuggestions = (query) => {
+  const suggestions = [
+    // Color-based suggestions
+    'red sunset over mountains',
+    'blue ocean waves',
+    'green forest landscape',
+    'golden hour photography',
+    'purple flowers in bloom',
+    
+    // Mood-based suggestions
+    'peaceful nature scenes',
+    'dramatic black and white',
+    'vintage street photography',
+    'modern architecture',
+    'romantic couple portraits',
+    
+    // Subject-based suggestions
+    'cute animals playing',
+    'city skyline at night',
+    'delicious food photography',
+    'artistic abstract patterns',
+    'people enjoying life'
+  ];
 
-  // Process natural language query into search terms
-  processNaturalLanguage(query) {
-    const lowercaseQuery = query.toLowerCase();
-    const words = lowercaseQuery.split(/\s+/);
-    const enhancedTerms = new Set();
-    
-    // Add original query
-    enhancedTerms.add(query);
-    
-    // Process each word through keyword mappings
-    words.forEach(word => {
-      // Direct mapping
-      if (keywordMappings[word]) {
-        keywordMappings[word].forEach(term => enhancedTerms.add(term));
-      }
-      
-      // Partial matching for compound words
-      Object.keys(keywordMappings).forEach(key => {
-        if (word.includes(key) || key.includes(word)) {
-          keywordMappings[key].forEach(term => enhancedTerms.add(term));
-        }
-      });
-    });
-    
-    return Array.from(enhancedTerms);
-  }
+  if (!query || query.length < 2) return suggestions.slice(0, 5);
 
-  // Extract dominant color preference from query
-  extractColorPreference(query) {
-    const lowercaseQuery = query.toLowerCase();
-    const detectedColors = [];
-    
-    Object.keys(colorKeywords).forEach(color => {
-      if (lowercaseQuery.includes(color)) {
-        detectedColors.push({
-          name: color,
-          hex: colorKeywords[color]
-        });
-      }
-    });
-    
-    return detectedColors;
-  }
+  // Filter suggestions based on query
+  const filtered = suggestions.filter(suggestion =>
+    suggestion.toLowerCase().includes(query.toLowerCase())
+  );
 
-  // Generate search suggestions based on partial input
-  generateSuggestions(partialQuery) {
-    const suggestions = [];
-    const lowercaseQuery = partialQuery.toLowerCase();
-    
-    // Template suggestions
-    const templates = [
-      `${partialQuery} at sunset`,
-      `${partialQuery} in nature`,
-      `beautiful ${partialQuery}`,
-      `${partialQuery} landscape`,
-      `${partialQuery} photography`,
-      `colorful ${partialQuery}`,
-      `peaceful ${partialQuery}`,
-      `dramatic ${partialQuery}`
-    ];
-    
-    // Add relevant templates based on query content
-    templates.forEach(template => {
-      if (template.length > partialQuery.length + 3) {
-        suggestions.push(template);
-      }
-    });
-    
-    // Add popular related searches
-    Object.keys(keywordMappings).forEach(key => {
-      if (key.includes(lowercaseQuery) && key !== lowercaseQuery) {
-        suggestions.push(key);
-        keywordMappings[key].slice(0, 2).forEach(related => {
-          suggestions.push(related);
-        });
-      }
-    });
-    
-    return suggestions.slice(0, 8); // Limit to 8 suggestions
-  }
+  return filtered.length > 0 ? filtered.slice(0, 5) : suggestions.slice(0, 5);
+};
 
-  // Enhanced search with multiple strategies
-  async performSmartSearch(query, apiKey, options = {}) {
-    const {
-      perPage = 20,
-      page = 1,
-      orientation = 'all',
-      category = 'all'
-    } = options;
+// Enhanced search with multiple strategies and pagination
+export const performSmartSearch = async (query, clientId, page = 1) => {
+  try {
+    const processedQuery = processNaturalLanguageQuery(query);
+    const searchTerms = processedQuery || query;
 
-    try {
-      // Process the natural language query
-      const enhancedTerms = this.processNaturalLanguage(query);
-      const colorPreferences = this.extractColorPreference(query);
-      
-      // Try multiple search strategies
-      const searchStrategies = [
-        // Primary search with original query
-        { query: query, weight: 1.0 },
-        // Enhanced terms search
-        { query: enhancedTerms.slice(0, 3).join(' OR '), weight: 0.8 },
-        // Fallback with most relevant single term
-        { query: enhancedTerms[1] || query, weight: 0.6 }
-      ];
+    console.log('Original query:', query);
+    console.log('Processed query:', searchTerms);
 
-      let allResults = [];
-      
-      for (const strategy of searchStrategies) {
-        try {
-          const response = await axios.get('https://api.unsplash.com/search/photos', {
-            headers: {
-              Authorization: `Client-ID ${apiKey}`
-            },
-            params: {
-              query: strategy.query,
-              per_page: Math.ceil(perPage / searchStrategies.length),
-              page: page,
-              orientation: orientation !== 'all' ? orientation : undefined,
-              category: category !== 'all' ? category : undefined,
-              order_by: 'relevance'
-            }
-          });
-
-          const results = response.data.results.map(result => ({
-            ...result,
-            searchWeight: strategy.weight,
-            matchedTerms: enhancedTerms.filter(term => 
-              result.description?.toLowerCase().includes(term.toLowerCase()) ||
-              result.alt_description?.toLowerCase().includes(term.toLowerCase()) ||
-              result.tags?.some(tag => tag.title.toLowerCase().includes(term.toLowerCase()))
-            )
-          }));
-
-          allResults = allResults.concat(results);
-        } catch (strategyError) {
-          console.warn(`Search strategy failed: ${strategy.query}`, strategyError);
+    // Primary search with processed terms
+    const response = await axios.get(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(searchTerms)}&per_page=30&page=${page}&order_by=relevant`,
+      {
+        headers: {
+          Authorization: `Client-ID ${clientId}`
         }
       }
+    );
 
-      // Remove duplicates and sort by relevance
-      const uniqueResults = this.removeDuplicates(allResults);
-      const sortedResults = this.sortByRelevance(uniqueResults, query, colorPreferences);
-      
-      // Store search history
-      this.addToHistory(query, sortedResults.length);
-      
-      return {
-        results: sortedResults.slice(0, perPage),
-        total: sortedResults.length,
-        enhancedTerms: enhancedTerms,
-        colorPreferences: colorPreferences,
-        searchStrategies: searchStrategies.map(s => s.query)
-      };
+    let results = response.data.results;
+    let total = response.data.total;
 
-    } catch (error) {
-      console.error('Smart search failed:', error);
-      throw error;
-    }
-  }
-
-  // Remove duplicate results based on ID
-  removeDuplicates(results) {
-    const seen = new Set();
-    return results.filter(result => {
-      if (seen.has(result.id)) {
-        return false;
-      }
-      seen.add(result.id);
-      return true;
-    });
-  }
-
-  // Sort results by relevance score
-  sortByRelevance(results, originalQuery, colorPreferences) {
-    return results.sort((a, b) => {
-      let scoreA = a.searchWeight || 0;
-      let scoreB = b.searchWeight || 0;
-      
-      // Boost score for matched terms
-      scoreA += (a.matchedTerms?.length || 0) * 0.1;
-      scoreB += (b.matchedTerms?.length || 0) * 0.1;
-      
-      // Boost score for color preferences
-      if (colorPreferences.length > 0) {
-        // This would require color analysis of the image
-        // For now, boost based on description matching
-        colorPreferences.forEach(color => {
-          if (a.description?.toLowerCase().includes(color.name) || 
-              a.alt_description?.toLowerCase().includes(color.name)) {
-            scoreA += 0.2;
+    // If no results with processed query on first page, try original query
+    if (results.length === 0 && processedQuery !== query && page === 1) {
+      const fallbackResponse = await axios.get(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&per_page=30&page=${page}&order_by=relevant`,
+        {
+          headers: {
+            Authorization: `Client-ID ${clientId}`
           }
-          if (b.description?.toLowerCase().includes(color.name) || 
-              b.alt_description?.toLowerCase().includes(color.name)) {
-            scoreB += 0.2;
-          }
-        });
-      }
-      
-      // Boost score for higher quality images
-      scoreA += (a.likes || 0) * 0.0001;
-      scoreB += (b.likes || 0) * 0.0001;
-      
-      return scoreB - scoreA;
-    });
-  }
-
-  // Add search to history
-  addToHistory(query, resultCount) {
-    this.searchHistory.unshift({
-      query,
-      resultCount,
-      timestamp: new Date(),
-      id: Date.now()
-    });
-    
-    // Keep only last 50 searches
-    if (this.searchHistory.length > 50) {
-      this.searchHistory = this.searchHistory.slice(0, 50);
-    }
-  }
-
-  // Get search history
-  getSearchHistory() {
-    return this.searchHistory;
-  }
-
-  // Get popular search terms
-  getPopularSearches() {
-    const termCounts = {};
-    
-    this.searchHistory.forEach(search => {
-      const terms = search.query.toLowerCase().split(/\s+/);
-      terms.forEach(term => {
-        if (term.length > 2) { // Ignore very short terms
-          termCounts[term] = (termCounts[term] || 0) + 1;
         }
-      });
-    });
-    
-    return Object.entries(termCounts)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 10)
-      .map(([term, count]) => ({ term, count }));
-  }
-}
+      );
+      results = fallbackResponse.data.results;
+      total = fallbackResponse.data.total;
+    }
 
-export default SmartSearch;
+    return {
+      results: results.map(res => ({
+        id: res.id,
+        srcs: res.urls,
+        alt: res.alt_description,
+        likes: res.likes,
+        user: res.user,
+        tags: res.tags || [],
+        description: res.description,
+        color: res.color
+      })),
+      total: total,
+      totalPages: Math.ceil(total / 30),
+      currentPage: page,
+      processedQuery: searchTerms
+    };
+
+  } catch (error) {
+    console.error('Smart search error:', error);
+    throw error;
+  }
+};
+
+// Color-based search enhancement
+export const searchByDominantColor = async (colorHex, clientId) => {
+  try {
+    const response = await axios.get(
+      `https://api.unsplash.com/search/photos?query=color:${colorHex}&per_page=20&page=1`,
+      {
+        headers: {
+          Authorization: `Client-ID ${clientId}`
+        }
+      }
+    );
+
+    return response.data.results.map(res => ({
+      id: res.id,
+      srcs: res.urls,
+      alt: res.alt_description,
+      likes: res.likes,
+      user: res.user,
+      color: res.color
+    }));
+
+  } catch (error) {
+    console.error('Color search error:', error);
+    return [];
+  }
+};
+
+// Search history and analytics
+export const saveSearchQuery = (query, results) => {
+  const searchHistory = JSON.parse(localStorage.getItem('searchHistory') || '[]');
+  const searchEntry = {
+    query,
+    timestamp: new Date().toISOString(),
+    resultCount: results.length,
+    id: Date.now()
+  };
+  
+  searchHistory.unshift(searchEntry);
+  // Keep only last 50 searches
+  const trimmedHistory = searchHistory.slice(0, 50);
+  localStorage.setItem('searchHistory', JSON.stringify(trimmedHistory));
+};
+
+export const getSearchHistory = () => {
+  return JSON.parse(localStorage.getItem('searchHistory') || '[]');
+};
+
+export const getPopularSearches = () => {
+  const history = getSearchHistory();
+  const queryCount = {};
+  
+  history.forEach(entry => {
+    queryCount[entry.query] = (queryCount[entry.query] || 0) + 1;
+  });
+  
+  return Object.entries(queryCount)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 10)
+    .map(([query]) => query);
+};

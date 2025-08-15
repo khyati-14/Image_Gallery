@@ -7,14 +7,14 @@ import Modal from '@mui/material/Modal';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import InsertPhotoIcon from '@mui/icons-material/InsertPhoto';
-import InstagramIcon from '@mui/icons-material/Instagram';
-import TwitterIcon from '@mui/icons-material/Twitter';
+import { FaInstagram, FaTwitter } from 'react-icons/fa';
 import {useMediaQuery} from './useMediaQuery';
 import { motion } from 'framer-motion';
 import ColorThief from 'colorthief';
+import FullscreenModal from './FullscreenModal';
 
 
-const Cards=({id,src,alt,likes,user,index})=>{
+const Cards=({id,src,alt,likes,user,index,instagramUrl,twitterUrl})=>{
 
 
   const isBiggerScreen = useMediaQuery();
@@ -24,6 +24,22 @@ const Cards=({id,src,alt,likes,user,index})=>{
   const [open2,setOpen2]=useState(false);
   const [colors, setColors] = useState([]);
   const [isHovered, setIsHovered] = useState(false);
+  const [showFullscreen, setShowFullscreen] = useState(false);
+
+  // Social media click handlers
+  const handleInstagramClick = (e) => {
+    e.stopPropagation();
+    if (instagramUrl) {
+      window.open(instagramUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleTwitterClick = (e) => {
+    e.stopPropagation();
+    if (twitterUrl) {
+      window.open(twitterUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
 
 
   useEffect(()=>{
@@ -142,10 +158,10 @@ const Cards=({id,src,alt,likes,user,index})=>{
                         <div style={{color:'white'}}>Connect and Like</div>
                         <div className="socialHandles">
                           <div className="socialmedia">
-                            <a target="blank" href={`https://www.instagram.com/${user.social.instagram_username}`}><InstagramIcon fontSize="large" sx={{ color:'pink' }}/></a>
+                            <a target="blank" href={`https://www.instagram.com/${user.social.instagram_username}`}><FaInstagram size={24} style={{ color:'pink' }}/></a>
                           </div>
                           <div className="socialmedia">
-                            <a target="blank" href={`https://www.twitter.com/${user.social.twitter_username}`} ><TwitterIcon fontSize="large" color="primary"/></a>
+                            <a target="blank" href={`https://www.twitter.com/${user.social.twitter_username}`} ><FaTwitter size={24} style={{ color:'#1DA1F2' }}/></a>
                           </div>
                         </div>
                         <div className="likesAndPhotos">
@@ -165,10 +181,10 @@ const Cards=({id,src,alt,likes,user,index})=>{
      
         <motion.img 
           id={`cardimg_${id}`} 
-          style={{borderTopLeftRadius:'0.4rem',borderTopRightRadius:'0.4rem', width: '100%', height: '270px', objectFit: 'cover'}} 
+          style={{borderTopLeftRadius:'0.4rem',borderTopRightRadius:'0.4rem', width: '100%', height: '270px', objectFit: 'cover', cursor: 'pointer'}} 
           src={src.thumb} 
           alt={alt} 
-          onClick={()=>{setOpen(true)}}
+          onClick={()=>{setShowFullscreen(true)}}
           whileHover={{ 
             scale: 1.1,
             filter: "brightness(1.1) contrast(1.1)",
@@ -182,6 +198,96 @@ const Cards=({id,src,alt,likes,user,index})=>{
             ease: "easeOut"
           }}
         />
+        
+        {/* Social Media Icons Overlay */}
+        {(instagramUrl || twitterUrl) && (
+          <motion.div
+            className="social-overlay"
+            initial={{ opacity: 0, scale: 0.8, y: -10 }}
+            animate={{ 
+              opacity: isHovered ? 1 : 0,
+              scale: isHovered ? 1 : 0.8,
+              y: isHovered ? 0 : -10
+            }}
+            transition={{ 
+              duration: 0.3, 
+              ease: "easeOut",
+              type: "spring",
+              stiffness: 150
+            }}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              display: 'flex',
+              gap: '8px',
+              zIndex: 10,
+              pointerEvents: isHovered ? 'auto' : 'none'
+            }}
+          >
+            {instagramUrl && (
+              <motion.a
+                href={instagramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.15, rotate: 5 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'rgba(0, 0, 0, 0.75)',
+                  borderRadius: '50%',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none'
+                }}
+              >
+                <FaInstagram 
+                  size={16}
+                  style={{ 
+                    color: '#E4405F',
+                    transition: 'color 0.3s ease'
+                  }}
+                />
+              </motion.a>
+            )}
+            
+            {twitterUrl && (
+              <motion.a
+                href={twitterUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.15, rotate: -5 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'rgba(0, 0, 0, 0.75)',
+                  borderRadius: '50%',
+                  padding: '8px',
+                  cursor: 'pointer',
+                  backdropFilter: 'blur(12px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textDecoration: 'none'
+                }}
+              >
+                <FaTwitter 
+                  size={16}
+                  style={{ 
+                    color: '#1DA1F2',
+                    transition: 'color 0.3s ease'
+                  }}
+                />
+              </motion.a>
+            )}
+          </motion.div>
+        )}
         
         <motion.div 
           className="nameAndLike"
@@ -266,6 +372,18 @@ const Cards=({id,src,alt,likes,user,index})=>{
             ))}
           </motion.div>
         )}
+
+        {/* New Fullscreen Modal */}
+        <FullscreenModal
+          isOpen={showFullscreen}
+          onClose={() => setShowFullscreen(false)}
+          image={{
+            src: src,
+            alt: alt,
+            likes: likes,
+            user: user
+          }}
+        />
     </motion.div>
   )
 }
