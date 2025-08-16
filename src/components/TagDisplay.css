@@ -1,0 +1,130 @@
+.tag-display {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tag-display.compact {
+  padding: 4px;
+  gap: 4px;
+}
+
+.ai-tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(5px);
+}
+
+.ai-tag:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tag-name {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tag-confidence {
+  font-size: 0.65rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.tag-provider {
+  font-size: 0.6rem;
+  font-weight: 800;
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1px 4px;
+  border-radius: 4px;
+  min-width: 12px;
+  text-align: center;
+}
+
+.show-more-tags {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(5px);
+}
+
+.show-more-tags:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Compact mode styles */
+.tag-display.compact .ai-tag {
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  border-radius: 10px;
+}
+
+.tag-display.compact .show-more-tags {
+  padding: 2px 6px;
+  font-size: 0.65rem;
+  border-radius: 10px;
+}
+
+/* Animation styles */
+.ai-tag {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .tag-display {
+    padding: 6px;
+    gap: 4px;
+  }
+  
+  .ai-tag {
+    padding: 3px 6px;
+    font-size: 0.7rem;
+  }
+  
+  .tag-confidence,
+  .tag-provider {
+    font-size: 0.6rem;
+  }
+  
+  .show-more-tags {
+    padding: 3px 6px;
+    font-size: 0.65rem;
+  }
+}

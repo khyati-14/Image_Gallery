@@ -12,9 +12,11 @@ import {useMediaQuery} from './useMediaQuery';
 import { motion } from 'framer-motion';
 import ColorThief from 'colorthief';
 import FullscreenModal from './FullscreenModal';
+import TagDisplay from './TagDisplay';
+import aiVisionService from '../utils/aiVisionService';
 
 
-const Cards=({id,src,alt,likes,user,index,instagramUrl,twitterUrl})=>{
+const Cards=({id,src,alt,likes,user,index,instagramUrl,twitterUrl,onTagClick})=>{
 
 
   const isBiggerScreen = useMediaQuery();
@@ -25,6 +27,8 @@ const Cards=({id,src,alt,likes,user,index,instagramUrl,twitterUrl})=>{
   const [colors, setColors] = useState([]);
   const [isHovered, setIsHovered] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [aiTags, setAiTags] = useState([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
 
   // Social media click handlers
   const handleInstagramClick = (e) => {
@@ -64,6 +68,16 @@ const Cards=({id,src,alt,likes,user,index,instagramUrl,twitterUrl})=>{
     };
     
     extractColors();
+
+    // Load AI tags if they exist
+    const loadAITags = async () => {
+      const storedTags = aiVisionService.getStoredTags(id);
+      if (storedTags && storedTags.length > 0) {
+        setAiTags(storedTags);
+      }
+    };
+
+    loadAITags();
   },[])
  
  
@@ -157,12 +171,16 @@ const Cards=({id,src,alt,likes,user,index,instagramUrl,twitterUrl})=>{
                       <div className="right">
                         <div style={{color:'white'}}>Connect and Like</div>
                         <div className="socialHandles">
-                          <div className="socialmedia">
-                            <a target="blank" href={`https://www.instagram.com/${user.social.instagram_username}`}><FaInstagram size={24} style={{ color:'pink' }}/></a>
-                          </div>
-                          <div className="socialmedia">
-                            <a target="blank" href={`https://www.twitter.com/${user.social.twitter_username}`} ><FaTwitter size={24} style={{ color:'#1DA1F2' }}/></a>
-                          </div>
+                          {user.social?.instagram_username && (
+                            <div className="socialmedia">
+                              <a target="blank" href={`https://www.instagram.com/${user.social.instagram_username}`}><FaInstagram size={24} style={{ color:'pink' }}/></a>
+                            </div>
+                          )}
+                          {user.social?.twitter_username && (
+                            <div className="socialmedia">
+                              <a target="blank" href={`https://www.twitter.com/${user.social.twitter_username}`} ><FaTwitter size={24} style={{ color:'#1DA1F2' }}/></a>
+                            </div>
+                          )}
                         </div>
                         <div className="likesAndPhotos">
                           <FavoriteIcon sx={{ color:'gray' }} fontSize="medium"/> <div style={{marginRight:10,color:'white'}}> &nbsp;{user.total_likes}</div> | &nbsp;&nbsp;
@@ -286,6 +304,39 @@ const Cards=({id,src,alt,likes,user,index,instagramUrl,twitterUrl})=>{
                 />
               </motion.a>
             )}
+          </motion.div>
+        )}
+
+        {/* AI Tags Overlay */}
+        {aiTags.length > 0 && (
+          <motion.div
+            className="ai-tags-overlay"
+            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+            animate={{ 
+              opacity: isHovered ? 1 : 0,
+              scale: isHovered ? 1 : 0.9,
+              y: isHovered ? 0 : 10
+            }}
+            transition={{ 
+              duration: 0.3, 
+              ease: "easeOut",
+              delay: 0.1
+            }}
+            style={{
+              position: 'absolute',
+              bottom: '80px',
+              left: '12px',
+              right: '12px',
+              zIndex: 15,
+              pointerEvents: isHovered ? 'auto' : 'none'
+            }}
+          >
+            <TagDisplay 
+              tags={aiTags} 
+              onTagClick={onTagClick}
+              compact={true}
+              maxTags={3}
+            />
           </motion.div>
         )}
         

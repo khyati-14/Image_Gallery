@@ -8,7 +8,8 @@ const InfiniteScrollGrid = ({
   images, 
   onLoadMore, 
   hasNextPage, 
-  isLoading 
+  isLoading,
+  onTagClick 
 }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(-1);
   const [showModal, setShowModal] = useState(false);
@@ -82,6 +83,7 @@ const InfiniteScrollGrid = ({
               instagramUrl={image.instagramUrl}
               twitterUrl={image.twitterUrl}
               onClick={() => handleImageClick(index)}
+              onTagClick={onTagClick}
             />
           </motion.div>
         ))}

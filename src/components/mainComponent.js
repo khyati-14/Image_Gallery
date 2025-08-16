@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SmartSearchBar from './SmartSearchBar';
 import { performSmartSearch } from '../utils/smartSearch';
 import InfiniteScrollGrid from './InfiniteScrollGrid';
+import AITagManager from './AITagManager';
+import aiVisionService from '../utils/aiVisionService';
 
 
 
@@ -64,6 +66,8 @@ const MainComponent=()=>{
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [showAITagManager, setShowAITagManager] = useState(false);
+  const [aiTagsUpdated, setAiTagsUpdated] = useState(0);
   let array2;
  
   // Enhanced smart search function with pagination
@@ -85,14 +89,10 @@ const MainComponent=()=>{
         // Generate Instagram and Twitter profile URLs using @usernames
         const instagramUrl = res.user?.social?.instagram_username 
           ? `https://www.instagram.com/${res.user.social.instagram_username}`
-          : res.user?.username 
-          ? `https://www.instagram.com/${res.user.username}`
           : null;
           
         const twitterUrl = res.user?.social?.twitter_username 
           ? `https://twitter.com/${res.user.social.twitter_username}`
-          : res.user?.username 
-          ? `https://twitter.com/${res.user.username}`
           : null;
         
         return {
@@ -125,6 +125,16 @@ const MainComponent=()=>{
       setIsSearching(false);
       setIsLoadingMore(false);
     }
+  };
+
+  // Handle tag click for search
+  const handleTagClick = (tagName) => {
+    handleSmartSearch(tagName, tagName, 1);
+  };
+
+  // Handle AI tags update
+  const handleAITagsUpdated = () => {
+    setAiTagsUpdated(prev => prev + 1);
   };
 
   // Load more images for infinite scroll
@@ -185,14 +195,10 @@ const MainComponent=()=>{
         // Generate Instagram and Twitter profile URLs using @usernames
         const instagramUrl = res.user?.social?.instagram_username 
           ? `https://www.instagram.com/${res.user.social.instagram_username}`
-          : res.user?.username 
-          ? `https://www.instagram.com/${res.user.username}`
           : null;
           
         const twitterUrl = res.user?.social?.twitter_username 
           ? `https://twitter.com/${res.user.social.twitter_username}`
-          : res.user?.username 
-          ? `https://twitter.com/${res.user.username}`
           : null;
         
         return {
@@ -248,7 +254,7 @@ const MainComponent=()=>{
                </motion.div>
                <motion.div 
                  className="club" 
-                 style={{display:'flex',justifyContent:'center'}}
+                 style={{display:'flex',justifyContent:'center', alignItems:'center', gap:'12px'}}
                  initial={{ scale: 0.9, opacity: 0 }}
                  animate={{ scale: 1, opacity: 1 }}
                  transition={{ duration: 0.6, delay: 0.3 }}
@@ -259,6 +265,25 @@ const MainComponent=()=>{
                    isBiggerScreen={isBiggerScreen}
                    initialQuery={searchQuery}
                  />
+                 <motion.button
+                   className="ai-tag-manager-btn"
+                   onClick={() => setShowAITagManager(true)}
+                   whileHover={{ scale: 1.05 }}
+                   whileTap={{ scale: 0.95 }}
+                   style={{
+                     background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                     color: 'white',
+                     border: 'none',
+                     padding: '8px 16px',
+                     borderRadius: '8px',
+                     cursor: 'pointer',
+                     fontSize: '0.9rem',
+                     fontWeight: '600',
+                     boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                   }}
+                 >
+                   🤖 AI Tags
+                 </motion.button>
                </motion.div>
       
               <motion.div
@@ -339,8 +364,18 @@ const MainComponent=()=>{
                onLoadMore={loadMoreImages}
                hasNextPage={hasNextPage}
                isLoading={isLoadingMore}
+               onTagClick={handleTagClick}
+               key={aiTagsUpdated} // Force re-render when AI tags are updated
              />
            </motion.div>
+
+           {/* AI Tag Manager Modal */}
+           <AITagManager
+             images={imageData}
+             isOpen={showAITagManager}
+             onClose={() => setShowAITagManager(false)}
+             onTagsUpdated={handleAITagsUpdated}
+           />
         </motion.div>
     )
 }
